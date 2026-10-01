@@ -1,0 +1,23 @@
+{
+    "name": "MR.App",
+    "rootNamespace": "MR.App",
+    "references": [
+        "MR.Core",
+        "MR.Auth",
+        "MR.XR",
+        "MR.Networking",
+        "MR.Voice",
+        "Unity.Netcode.Runtime",
+        "Unity.Services.Multiplayer",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

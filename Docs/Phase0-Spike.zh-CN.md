@@ -1,0 +1,96 @@
+# 阶段 0：跨平台联网技术验证
+
+[English](Phase0-Spike.md) | 简体中文
+
+目标：**编辑器 / Meta Quest / Apple Vision Pro** 三端进入同一个 Multiplayer Services 会话（Distributed Authority），看到彼此的头和手，并且共享方块的所有权能在各端之间轮换。
+
+验证场景不需要任何输入：每台设备启动后会自动匿名登录 → Quick Join（没有会话就新建）→ 显示状态面板。
+
+## 版本锁定
+
+| 组件 | 版本 |
+|---|---|
+| Unity | 6000.3.25f1 |
+| Netcode for GameObjects | 2.13.3（NGO 3.x 需要 Unity 6000.7，暂不升级） |
+| Multiplayer Services | 2.3.3 |
+| PolySpatial / visionOS | 3.3.1 |
+| OpenXR / Meta OpenXR | 1.18.0 / 2.6.1 |
+| AR Foundation | 6.6.2 |
+| XR Interaction Toolkit / XR Hands | 3.6.1 / 1.9.0 |
+| Vivox | 16.12.1（包内自带 visionOS 原生库） |
+
+## 一次性设置（必须手动完成）
+
+### 1. Unity Hub
+- 给 6000.3.25f1 安装 **Android Build Support**（含 OpenJDK、Android SDK & NDK）。目前本机只装了 visionOS 和 WebGL 模块。
+
+### 2. Unity Cloud
+1. **Edit → Project Settings → Services**：关联一个 Unity Cloud 项目。
+2. 在 [cloud.unity.com](https://cloud.unity.com) 上为这个项目启用：
+   - **Multiplayer → Sessions / Distributed Authority**
+   - **Vivox**
+   - Authentication 默认开启了匿名登录，**不需要**再配置用户名密码提供商。
+
+### 3. XR Plug-in Management（Edit → Project Settings → XR Plug-in Management）
+- **Android 页签**：勾选 **OpenXR**，并勾选 **Meta Quest** 特性组。然后在 OpenXR 页签里：
+  - 交互配置文件：添加 *Oculus Touch Controller Profile* 和 *Hand Interaction Profile*
+  - 特性：启用 *Meta Quest Support*、*Meta Quest: Session*、*Meta Quest: Camera (Passthrough)*、*Meta Quest: Planes*、*Hand Tracking Subsystem*
+- **visionOS 页签**：勾选 **Apple visionOS**，App Mode 选 **RealityKit with PolySpatial**。
+- 最后打开 **Project Validation**，对两个平台都点 *Fix All*。
+
+### 4. 权限说明（Player Settings → visionOS → Other Settings，以及 Apple visionOS 设置页）
+- Hand Tracking Usage Description："用于在多人场景中同步你的手部动作"
+- World Sensing Usage Description："用于检测桌面等平面以放置物体"
+- Microphone Usage Description："用于和其他参与者语音聊天"
+- Android 端麦克风权限由 `VoiceManager` 在运行时申请。
+
+### 5. 生成验证场景
+菜单 **Tools → MR → Generate Phase 0 Spike Content**（可重复执行）。会生成：
+- `Assets/_Project/Prefabs/NetworkRig.prefab`：玩家 Prefab，包含头、双手和昵称标签
+- `Assets/_Project/Prefabs/OwnershipProbe.prefab`：所有权轮换测试方块
+- `Assets/_Project/Settings/NetworkPrefabs.asset`、`UnboundedVolume.asset`
+- `Assets/_Project/Scenes/Main.unity`：并设为 Build Settings 里唯一的场景
+
+## 测试步骤
+
+### A. 编辑器（Multiplayer Play Mode）
+1. **Window → Multiplayer → Multiplayer Play Mode**，启用 1–3 个虚拟玩家。
+2. 打开 `Main.unity`，按 Play。
+3. 操作：WASD 移动、Q/E 升降、按住右键转视角。编辑器里没有头显时，手的位置由 `HardwareRig` 模拟在身前。
+4. 每个虚拟玩家使用独立的认证 Profile（见 `UnityServicesInitializer`），所以会有不同的 PlayerId。
+
+### B. Quest
+- Build Settings 切到 Android → Build And Run。也可以用 Quest Link 直接在编辑器里跑。
+- 如果看不到平面或透视画面，先在头显系统设置里完成"空间设置"。
+
+### C. Vision Pro
+- Build Settings 切到 visionOS → Build，在 Xcode 中打开生成的工程，部署到真机。
+- 也可以用 **PolySpatial → Play to Device** 快速迭代。
+
+## 通过标准
+
+在至少 **编辑器 + Quest + AVP** 三端同时在线的情况下：
+
+- [ ] 三端状态面板显示**同一个会话码**，玩家列表包含所有人和他们的平台
+- [ ] 每一端都能看到其他人的头和手在移动，延迟可以接受
+- [ ] 方块绕圈运动，每 5 秒换一个所有者（颜色随之变化），运动连续，没有跳变
+- [ ] 关掉**会话创建者**那一端后，会话仍然存在，方块继续由其他人驱动，被关掉那个人的 Avatar 消失
+- [ ] 三端能够互相语音通话
+
+## 不通过时的退路
+
+- **Distributed Authority 在某一端不稳定**：把 `Services` 物体上 `SessionManager.networkMode` 改成 `RelayClientHost`，即退回原型那种主机模式（`AppBootstrap` 已兼容由主机生成方块）。
+- **Vivox 不可用**：语音不影响其余验证，状态面板会显示 `Voice unavailable: ...`，可以先跳过。
+
+## 代码结构
+
+```
+Assets/_Project/
+  Core/        PlatformInfo, PlayerColors
+  Auth/        IAuthProvider, AnonymousAuthProvider, AuthManager, UnityServicesInitializer
+  XR/          HardwareRig（头/手姿态：XR Hands → 手柄 → 编辑器模拟）, EditorFlyCamera
+  Networking/  SessionManager（Sessions API）, NetworkRig（玩家 Prefab）, OwnershipRotationProbe
+  Voice/       VoiceManager（Vivox，频道名 = 会话 Id）
+  App/         AppBootstrap（自动登录 + 快速加入）, StatusPanel
+  Editor/      ProjectSetup（一键生成）
+```

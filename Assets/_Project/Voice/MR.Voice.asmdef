@@ -1,0 +1,21 @@
+{
+    "name": "MR.Voice",
+    "rootNamespace": "MR.Voice",
+    "references": [
+        "MR.Core",
+        "MR.Auth",
+        "MR.Networking",
+        "Unity.Services.Core",
+        "Unity.Services.Vivox",
+        "Unity.Services.Multiplayer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

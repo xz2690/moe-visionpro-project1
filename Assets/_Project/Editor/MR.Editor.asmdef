@@ -1,0 +1,29 @@
+{
+    "name": "MR.Editor",
+    "rootNamespace": "MR.EditorTools",
+    "references": [
+        "MR.Core",
+        "MR.Auth",
+        "MR.XR",
+        "MR.Networking",
+        "MR.Voice",
+        "MR.App",
+        "Unity.Netcode.Runtime",
+        "Unity.PolySpatial",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.CoreUtils",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
