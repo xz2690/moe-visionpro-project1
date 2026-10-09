@@ -29,9 +29,14 @@ Unity 6.3 混合现实多人项目：Vision Pro（PolySpatial / RealityKit）和
 
 - **Apple Vision Pro ↔ 编辑器**：visionOS 版本（RealityKit with PolySpatial）能签名、安装并在 Vision Pro 上运行，并且和 Mac 上的编辑器进入同一个共享会话
 
+没有头显时的 Quest 验证：
+
+- **Android 构建**：APK 能成功打包，清单里有 OpenXR、VR 启动类别、透视和手部追踪
+- **Meta XR Simulator（macOS）**：OpenXR 正常运行，模拟出头显和两个 Touch Plus 手柄，手的位置来自手柄，会话、座位、语音都正常
+
 ### 尚未验证
 
-- Meta Quest 真机：Android 构建已经配好，APK 也能成功打包，但还没在 Quest 上运行过。没有头显时，可以在 Windows 上用 Meta XR Simulator 测试 OpenXR 这条路径（见 [Docs/Phase0-Spike.zh-CN.md](Docs/Phase0-Spike.zh-CN.md) 的测试 B2）
+- Meta Quest 真机：Android 构建已经配好，APK 也能成功打包，但还没在 Quest 上运行过。没有头显时，可以在 macOS 或 Windows 上用 Meta XR Simulator 测试（见 [Docs/Phase0-Spike.zh-CN.md](Docs/Phase0-Spike.zh-CN.md) 的测试 B2）
 - Vision Pro 上的座位效果：XR Origin 和 PolySpatial Volume Camera 一起移动的做法在编辑器里正常，还没在真机上确认
 
 ### 下一步：阶段 1
@@ -50,7 +55,7 @@ Unity 6.3 混合现实多人项目：Vision Pro（PolySpatial / RealityKit）和
 |---|---|
 | **Tools → MR → Generate Phase 0 Spike Content** | 生成 Prefab、网络 Prefab 列表、visionOS 的 Volume Camera 配置和 `Main.unity` |
 | **Tools → MR → Apply visionOS Player Settings** | 设置 Apple 签名团队和麦克风权限说明（缺少麦克风说明时，visionOS 会在语音启动时直接杀掉 App） |
-| **Tools → MR → Enable / Disable OpenXR in Editor** | 开启或关闭编辑器 Play 模式下的 OpenXR 加载器（配合 Windows 上的 Meta XR Simulator 使用；默认开启，在 macOS 上没有影响） |
+| **Tools → MR → Enable / Disable OpenXR in Editor** | 开启或关闭编辑器 Play 模式下的 OpenXR 加载器（配合 Meta XR Simulator 使用；默认开启，没有激活的 OpenXR 运行时时，编辑器继续用键盘鼠标操作） |
 
 > **Multiplayer Play Mode 提示：** 修改场景之后，要在 Multiplayer Play Mode 窗口里把虚拟玩家关掉再打开。代码改动会自动同步给它们，但它们会继续使用之前已经打开的那份场景。
 

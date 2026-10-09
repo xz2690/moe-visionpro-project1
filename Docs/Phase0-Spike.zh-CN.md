@@ -75,13 +75,27 @@
 
 会话在云端，所以 Quest 不需要和其他设备在同一个网络里：手上有头显的人装好 APK，在任何地方都能和 Vision Pro、编辑器的玩家进入同一个会话。
 
-### B2. 没有头显时测试 Quest：Windows + Meta XR Simulator
-1. 在 Windows 电脑上安装 Unity **6000.3.25f1**，克隆本仓库。
-2. 通过 Package Manager 安装 **Meta XR Simulator** 包（`com.meta.xr.simulator`，Unity Asset Store 上免费）。只装在本机：模拟器是每台机器自己的工具，这个包的改动不要提交。
-3. **Project Settings → XR Plug-in Management → OpenXR（Windows 页签）→ Play Mode OpenXR Runtime → Meta XR Simulator**。
-4. 打开 `Main.unity` 按 Play。模拟器窗口会弹出来，在里面操控模拟的头显、Touch 手柄和手。编辑器会像其他玩家一样加入共享会话，所以 Mac 上的编辑器或 Vision Pro 可以同时加入。
+### B2. 没有头显时测试 Quest：Meta XR Simulator（macOS 或 Windows）
+Meta XR Simulator 是一个模拟 Quest 3 的 OpenXR 运行时，模拟头显、Touch Plus 手柄和手，在编辑器的 Play 模式里运行。Apple 芯片的 Mac 和 Windows 都支持。
 
-能验证的：在类似 Quest 的 OpenXR 运行时上，头部和手柄 / 手的姿态能否通过 `HardwareRig` 正常读取，以及配合联网的表现。验证不了的：透视、平面检测和真机性能，这些仍然需要头显。
+1. **在本机安装模拟器包。** 在 `Packages/manifest.json` 里加上 Meta 的包仓库和这个包：
+   ```json
+   "dependencies": {
+     "com.meta.xr.simulator": "81.0.1"
+   },
+   "scopedRegistries": [
+     { "name": "Meta XR", "url": "https://npm.developer.oculus.com", "scopes": ["com.meta.xr"] }
+   ]
+   ```
+   （也可以在 Unity Asset Store 领取 *Meta XR Simulator*，再到 Package Manager → My Assets 里安装。）
+   这样会改动 `Packages/manifest.json`、`Packages/packages-lock.json` 和 `ProjectSettings/PackageManagerSettings.asset`，**这些改动不要提交**：模拟器是每台机器自己的开发工具。
+2. **安装模拟器本体。** 包会在第一次使用时自动下载（约 190 MB）。macOS 装在 `~/Library/MetaXR/MetaXrSimulator/<版本>`，Windows 装在 `%LOCALAPPDATA%\MetaXR\MetaXrSimulator\<版本>`。要指定版本，打开 **Edit / Unity → Preferences → Meta XR → Meta XR Simulator → Available Versions**。
+   - **Windows 的 81 版：** Meta 那边 Windows 版 81 的下载链接目前返回 *HTTP 404*（`[Meta XR Simulator Installer] HTTP/1.1 404 Not Found`）。请在 *Available Versions* 里改选 **78.1**。如果列表是空的，先按一次 Play 让它去获取版本列表，再重新打开 Preferences。macOS 的 81 版可以正常下载。
+3. **激活：** **Meta → Meta XR Simulator → Activate**。这会把 OpenXR 的 Play 模式运行时指向模拟器，相当于在 Project Settings → XR Plug-in Management → OpenXR → Play Mode OpenXR Runtime 里选择 Meta XR Simulator。仓库里已经开启了 Standalone 平台的 OpenXR 加载器。
+4. 打开 `Main.unity` 按 Play，在模拟器窗口里操控模拟的头显和手柄。编辑器会像其他玩家一样加入共享会话，所以 Vision Pro 或其他编辑器可以同时加入。
+5. 要换回键盘鼠标，在同一个菜单里点 **Deactivate**。做 Multiplayer Play Mode 测试前也请先 Deactivate：虚拟玩家是主编辑器启动的子进程，可能会继承模拟器设置，每个都去开一个模拟器。
+
+能验证的：在类似 Quest 的 OpenXR 运行时上，头部姿态、Touch 手柄和手的姿态能否通过 `HardwareRig` 正常读取，以及配合联网和语音的表现。验证不了的：透视（背景显示为黑色）、平面检测和真机性能，这些仍然需要头显。
 
 ### C. Vision Pro
 - Build Settings 切到 visionOS → Build，在 Xcode 中打开生成的工程，部署到真机。
@@ -108,7 +122,7 @@
 | 方块绕圈，每 5 秒换所有者和颜色 | ✅ 各端一致地按 1 → 2 → 3 → 1 轮换 |
 | 会话创建者离开后会话仍在 | ✅ 剩下两人仍在会话中，方块继续在他们之间传递 |
 | 语音 | ✅ 主编辑器连接成功；虚拟玩家按设计跳过语音 |
-| Meta Quest | ✅ APK 能成功构建（清单中已确认 OpenXR、Meta Quest 功能、透视、手部追踪和 VR 启动类别）；⏳ 还没在头显或 Meta XR Simulator 上运行 |
+| Meta Quest | ✅ APK 能成功构建（清单中已确认 OpenXR、Meta Quest 功能、透视、手部追踪和 VR 启动类别）；✅ macOS 上的 Meta XR Simulator 81：OpenXR 正常运行，模拟出头显和两个 Touch Plus 手柄，`HardwareRig` 能从手柄读到手的位置，会话、座位、语音都正常；⏳ 还没在头显上运行 |
 | Vision Pro 上的座位效果 | ⏳ 编辑器里正常，还没在真机上确认 |
 
 测试中修复的问题：

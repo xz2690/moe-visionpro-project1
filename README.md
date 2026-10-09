@@ -29,9 +29,14 @@ On device:
 
 - **Apple Vision Pro ↔ Editor**: the visionOS build (RealityKit with PolySpatial) signs, installs and runs on Vision Pro, and joins the same shared session as the Mac editor
 
+Quest path without a headset:
+
+- **Android build**: the APK builds; its manifest has OpenXR, the VR launcher category, passthrough and hand tracking
+- **Meta XR Simulator (macOS)**: OpenXR runs with a simulated headset and two Touch Plus controllers; hand poses come from the controllers; session, seat and voice work
+
 ### Not verified yet
 
-- Meta Quest on a headset: the Android build is configured and the APK builds, but it has not run on a Quest yet. Without a headset, test the OpenXR path on Windows with the Meta XR Simulator ([Docs/Phase0-Spike.md](Docs/Phase0-Spike.md), test B2)
+- Meta Quest on a headset: the Android build is configured and the APK builds, but it has not run on a Quest yet. Without a headset, use the Meta XR Simulator on macOS or Windows ([Docs/Phase0-Spike.md](Docs/Phase0-Spike.md), test B2)
 - Seat placement on Vision Pro: moving the XR Origin together with the PolySpatial Volume Camera works in the editor, but has not been checked on device
 
 ### Next: Phase 1
@@ -50,7 +55,7 @@ Editor menu items:
 |---|---|
 | **Tools → MR → Generate Phase 0 Spike Content** | Generates prefabs, the network prefab list, the visionOS volume camera config and `Main.unity` |
 | **Tools → MR → Apply visionOS Player Settings** | Sets the Apple signing team and the microphone usage description (without it visionOS kills the app when voice starts) |
-| **Tools → MR → Enable / Disable OpenXR in Editor** | Turns the OpenXR loader for editor Play mode on or off (used with the Meta XR Simulator on Windows; enabled by default and harmless on macOS) |
+| **Tools → MR → Enable / Disable OpenXR in Editor** | Turns the OpenXR loader for editor Play mode on or off (used with the Meta XR Simulator; enabled by default, and without an active OpenXR runtime the editor just keeps keyboard / mouse) |
 
 > **Multiplayer Play Mode tip:** after changing a scene, turn the virtual players off and on again in the Multiplayer Play Mode window. Code changes reach them automatically, but they keep using the copy of the scene they already had open.
 

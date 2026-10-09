@@ -75,13 +75,27 @@ Run **Tools → MR → Generate Phase 0 Spike Content** (safe to re-run). It cre
 
 Because the session runs in the cloud, the Quest doesn't need to be on the same network: whoever has a headset can install the APK and join the Vision Pro / editor players from anywhere.
 
-### B2. Quest without a headset: Windows + Meta XR Simulator
-1. On a Windows PC, install Unity **6000.3.25f1** and clone the repository.
-2. Install the **Meta XR Simulator** package (`com.meta.xr.simulator`) through the Package Manager (Unity Asset Store, free). Keep it local: the simulator is a per-machine tool, so don't commit the package change.
-3. **Project Settings → XR Plug-in Management → OpenXR (Windows tab) → Play Mode OpenXR Runtime → Meta XR Simulator**.
-4. Open `Main.unity` and press Play. The simulator window opens; control the simulated headset, Touch controllers and hands from it. The editor joins the shared session like any other player, so a Mac editor or the Vision Pro can join at the same time.
+### B2. Quest without a headset: Meta XR Simulator (macOS or Windows)
+The Meta XR Simulator is an OpenXR runtime that simulates a Quest 3: headset, Touch Plus controllers and hands. It runs inside the editor's Play mode, on Apple silicon Macs and on Windows.
 
-What this covers: the OpenXR path on a Quest-like runtime (head and controller / hand poses through `HardwareRig`), together with the networking. Not covered: passthrough, plane detection and real-device performance, which still need a headset.
+1. **Install the package locally.** Add Meta's registry and the package to `Packages/manifest.json`:
+   ```json
+   "dependencies": {
+     "com.meta.xr.simulator": "81.0.1"
+   },
+   "scopedRegistries": [
+     { "name": "Meta XR", "url": "https://npm.developer.oculus.com", "scopes": ["com.meta.xr"] }
+   ]
+   ```
+   (Or get *Meta XR Simulator* from the Unity Asset Store and install it from Package Manager → My Assets.)
+   **Do not commit** the resulting changes to `Packages/manifest.json`, `Packages/packages-lock.json` and `ProjectSettings/PackageManagerSettings.asset`: the simulator is a per-machine developer tool.
+2. **Install the simulator itself.** The package downloads it on first use (about 190 MB, into `~/Library/MetaXR/MetaXrSimulator/<version>` on macOS or `%LOCALAPPDATA%\MetaXR\MetaXrSimulator\<version>` on Windows). To pick a version, use **Edit / Unity → Preferences → Meta XR → Meta XR Simulator → Available Versions**.
+   - **Windows, version 81:** Meta's download link for the Windows build of 81 currently returns *HTTP 404* (`[Meta XR Simulator Installer] HTTP/1.1 404 Not Found`). Choose **78.1** under *Available Versions* instead. If the list is empty, press Play once so the package fetches it, then reopen Preferences. The macOS build of 81 downloads fine.
+3. **Activate it:** **Meta → Meta XR Simulator → Activate**. This points the OpenXR Play Mode runtime at the simulator (equivalent to Project Settings → XR Plug-in Management → OpenXR → Play Mode OpenXR Runtime → Meta XR Simulator). The Standalone OpenXR loader is already enabled in the repo.
+4. Open `Main.unity` and press Play. Control the simulated headset and controllers from the simulator window. The editor joins the shared session like any other player, so the Vision Pro or other editors can join at the same time.
+5. **Deactivate** (same menu) to go back to keyboard / mouse. Deactivate it before Multiplayer Play Mode tests: virtual players are started by the main editor and may inherit the simulator runtime, each opening its own simulator.
+
+What this covers: the OpenXR path on a Quest-like runtime (head pose, Touch controller and hand poses through `HardwareRig`) together with networking and voice. Not covered: passthrough (the background renders black), plane detection and real-device performance, which still need a headset.
 
 ### C. Vision Pro
 - Switch Build Settings to visionOS → Build, open the generated project in Xcode and deploy to the device.
@@ -108,7 +122,7 @@ With at least **Editor + Quest + AVP** online at the same time:
 | Cube orbits, changes owner and color every 5 s | ✅ Rotates 1 → 2 → 3 → 1 on all clients |
 | Session survives the creator leaving | ✅ Remaining two players stayed in the session and kept passing the cube |
 | Voice | ✅ Main editor connects; virtual players skip voice by design |
-| Meta Quest | ✅ APK builds (OpenXR, Meta Quest features, passthrough, hand tracking, VR launcher category confirmed in the manifest); ⏳ not yet run on a headset or the Meta XR Simulator |
+| Meta Quest | ✅ APK builds (OpenXR, Meta Quest features, passthrough, hand tracking, VR launcher category confirmed in the manifest); ✅ Meta XR Simulator 81 on macOS: OpenXR runs with a simulated headset and two Touch Plus controllers, `HardwareRig` reads hand poses from the controllers, session / seat / voice work; ⏳ not yet run on a headset |
 | Seat placement on Vision Pro | ⏳ Works in the editor; not yet checked on device |
 
 Fixed during testing:
