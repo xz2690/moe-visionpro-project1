@@ -27,14 +27,22 @@ namespace MR.Auth
         {
             get
             {
+#if UNITY_EDITOR
+                // Multiplayer Play Mode instances share one PlayerPrefs store, so a saved
+                // name would be identical for every player. Name them by player number.
+                return $"Editor-P{EditorInstanceInfo.PlayerNumber}";
+#else
                 string saved = PlayerPrefs.GetString(DisplayNameKey, "");
                 if (!string.IsNullOrEmpty(saved)) return saved;
                 return $"{PlatformInfo.ShortName(PlatformInfo.Current)}-{UnityEngine.Random.Range(100, 1000)}";
+#endif
             }
             set
             {
+#if !UNITY_EDITOR
                 PlayerPrefs.SetString(DisplayNameKey, value);
                 PlayerPrefs.Save();
+#endif
             }
         }
 

@@ -201,6 +201,18 @@ namespace MR.EditorTools
             panelSo.FindProperty("label").objectReferenceValue = panelLabel;
             panelSo.ApplyModifiedPropertiesWithoutUndo();
 
+            // Each player gets their own seat around the shared content. The Volume Camera
+            // (visionOS) and this player's status panel move together with the XR Origin.
+            var originGo = cameraGo.transform.root.gameObject;
+            var seats = originGo.AddComponent<SeatAssigner>();
+            var seatSo = new SerializedObject(seats);
+            seatSo.FindProperty("origin").objectReferenceValue = originGo.transform;
+            var carry = seatSo.FindProperty("carryAlong");
+            carry.arraySize = 2;
+            carry.GetArrayElementAtIndex(0).objectReferenceValue = volumeGo.transform;
+            carry.GetArrayElementAtIndex(1).objectReferenceValue = panelGo.transform;
+            seatSo.ApplyModifiedPropertiesWithoutUndo();
+
             Selection.activeGameObject = cameraGo;
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };

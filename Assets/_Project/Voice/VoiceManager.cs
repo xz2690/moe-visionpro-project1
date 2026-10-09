@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using MR.Auth;
+using MR.Core;
 using MR.Networking;
 using Unity.Services.Multiplayer;
 using Unity.Services.Vivox;
@@ -37,6 +38,15 @@ namespace MR.Voice
 
         private void Start()
         {
+            // Vivox's native library cannot load in Multiplayer Play Mode virtual players
+            // (EntryPointNotFoundException), and several voice clients on one machine would
+            // only echo each other anyway. Voice is tested from the main editor and devices.
+            if (EditorInstanceInfo.IsVirtualPlayer)
+            {
+                Report("Voice off (virtual player)");
+                return;
+            }
+
             _sessions = SessionManager.Instance;
             if (_sessions == null) return;
             _sessions.Joined += OnSessionJoined;

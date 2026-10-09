@@ -43,6 +43,7 @@
 - World Sensing Usage Description："用于检测桌面等平面以放置物体"
 - Microphone Usage Description："用于和其他参与者语音聊天"
 - Android 端麦克风权限由 `VoiceManager` 在运行时申请。
+- 快捷方式：**Tools → MR → Apply visionOS Player Settings** 会填好麦克风说明（以及 Apple 签名团队）。注意要填的是 *Microphone* Usage Description，不是 *Camera*：缺了它，Vivox 一打开麦克风，visionOS 就会直接杀掉 App。
 
 ### 5. 生成验证场景
 菜单 **Tools → MR → Generate Phase 0 Spike Content**（可重复执行）。会生成：
@@ -58,6 +59,8 @@
 2. 打开 `Main.unity`，按 Play。
 3. 操作：WASD 移动、Q/E 升降、按住右键转视角。编辑器里没有头显时，手的位置由 `HardwareRig` 模拟在身前。
 4. 每个虚拟玩家使用独立的认证 Profile（见 `UnityServicesInitializer`），所以会有不同的 PlayerId。
+5. 每个玩家按 Multiplayer Play Mode 的编号命名（`Editor-P1`、`Editor-P2`……），并被分配到方块周围不同的座位（`SeatAssigner`）。虚拟玩家会跳过语音：Vivox 的原生库在虚拟玩家里无法加载。
+6. **修改场景之后，要把虚拟玩家关掉再打开。** 代码改动会自动同步给它们，但它们会继续使用之前已经打开的那份场景。
 
 ### B. Quest
 - Build Settings 切到 Android → Build And Run。也可以用 Quest Link 直接在编辑器里跑。
@@ -77,6 +80,26 @@
 - [ ] 关掉**会话创建者**那一端后，会话仍然存在，方块继续由其他人驱动，被关掉那个人的 Avatar 消失
 - [ ] 三端能够互相语音通话
 
+## 测试结果（2026-10-08）
+
+**阶段 0 已通过，可以开始阶段 1 的开发。**
+
+| 检查项 | 结果 |
+|---|---|
+| 同一会话，玩家列表显示各自平台 | ✅ 编辑器三人（MPPM）；✅ Vision Pro + 编辑器 |
+| 能看到其他人的头和手并且会动 | ✅ 编辑器三人；每个玩家坐在方块周围的一圈座位上，面朝中心 |
+| 方块绕圈，每 5 秒换所有者和颜色 | ✅ 各端一致地按 1 → 2 → 3 → 1 轮换 |
+| 会话创建者离开后会话仍在 | ✅ 剩下两人仍在会话中，方块继续在他们之间传递 |
+| 语音 | ✅ 主编辑器连接成功；虚拟玩家按设计跳过语音 |
+| Meta Quest | ⏳ 尚未测试（需要先安装 Android Build Support 模块） |
+| Vision Pro 上的座位效果 | ⏳ 编辑器里正常，还没在真机上确认 |
+
+测试中修复的问题：
+
+- Vivox 打开麦克风时 Vision Pro 崩溃：语音说明被误填到了*相机*权限说明里。请用 **Tools → MR → Apply visionOS Player Settings** 设置。
+- 所有 MPPM 玩家昵称相同（它们共用 PlayerPrefs）；现在昵称按玩家编号生成。
+- 退出 Play 时出现 `Leave on destroy failed: lobby not found`；Multiplayer SDK 在退出时已经会离开会话，所以去掉了多余的离开操作。
+
 ## 不通过时的退路
 
 - **Distributed Authority 在某一端不稳定**：把 `Services` 物体上 `SessionManager.networkMode` 改成 `RelayClientHost`，即退回原型那种主机模式（`AppBootstrap` 已兼容由主机生成方块）。
@@ -86,11 +109,11 @@
 
 ```
 Assets/_Project/
-  Core/        PlatformInfo, PlayerColors
+  Core/        PlatformInfo, PlayerColors, EditorInstanceInfo
   Auth/        IAuthProvider, AnonymousAuthProvider, AuthManager, UnityServicesInitializer
   XR/          HardwareRig（头/手姿态：XR Hands → 手柄 → 编辑器模拟）, EditorFlyCamera
-  Networking/  SessionManager（Sessions API）, NetworkRig（玩家 Prefab）, OwnershipRotationProbe
+  Networking/  SessionManager（Sessions API）, NetworkRig（玩家 Prefab）, OwnershipRotationProbe, SeatAssigner
   Voice/       VoiceManager（Vivox，频道名 = 会话 Id）
   App/         AppBootstrap（自动登录 + 快速加入）, StatusPanel
-  Editor/      ProjectSetup（一键生成）
+  Editor/      ProjectSetup（一键生成），AppleSigningSetup（visionOS Player Settings）
 ```

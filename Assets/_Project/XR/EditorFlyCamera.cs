@@ -19,7 +19,8 @@ namespace MR.XR
 
         private void OnEnable()
         {
-            var euler = transform.eulerAngles;
+            // Local rotation: the XR Origin above may be rotated (SeatAssigner).
+            var euler = transform.localEulerAngles;
             _yaw = euler.y;
             _pitch = euler.x;
         }
@@ -36,8 +37,9 @@ namespace MR.XR
             {
                 Vector2 delta = mouse.delta.ReadValue();
                 _yaw += delta.x * lookSpeed;
+                if (_pitch > 180f) _pitch -= 360f; // localEulerAngles reports e.g. 350 for -10
                 _pitch = Mathf.Clamp(_pitch - delta.y * lookSpeed, -80f, 80f);
-                transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+                transform.localRotation = Quaternion.Euler(_pitch, _yaw, 0f);
             }
 
             Vector3 move = Vector3.zero;

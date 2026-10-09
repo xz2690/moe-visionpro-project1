@@ -42,16 +42,27 @@ namespace MR.Networking
         public string LastStatus { get; private set; } = "";
         public SessionNetworkMode NetworkMode => networkMode;
 
+        private bool _quitting;
+
         private void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+            Application.quitting += OnApplicationQuitting;
         }
+
+        // Also raised when exiting Play mode in the editor.
+        private void OnApplicationQuitting() => _quitting = true;
 
         private async void OnDestroy()
         {
+            Application.quitting -= OnApplicationQuitting;
             if (Instance == this) Instance = null;
-            if (ActiveSession != null)
+
+            // On quit the Multiplayer SDK leaves the session itself; leaving again here
+            // only fails with "lobby not found". Leave explicitly only when this manager
+            // is destroyed while the app keeps running.
+            if (ActiveSession != null && !_quitting)
             {
                 try { await ActiveSession.LeaveAsync(); }
                 catch (Exception ex) { Debug.LogWarning($"[Session] Leave on destroy failed: {ex.Message}"); }
