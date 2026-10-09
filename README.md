@@ -31,7 +31,7 @@ On device:
 
 ### Not verified yet
 
-- Meta Quest builds (the Android Build Support module is needed first)
+- Meta Quest on a headset: the Android build is configured and the APK builds, but it has not run on a Quest yet. Without a headset, test the OpenXR path on Windows with the Meta XR Simulator ([Docs/Phase0-Spike.md](Docs/Phase0-Spike.md), test B2)
 - Seat placement on Vision Pro: moving the XR Origin together with the PolySpatial Volume Camera works in the editor, but has not been checked on device
 
 ### Next: Phase 1
@@ -50,6 +50,7 @@ Editor menu items:
 |---|---|
 | **Tools → MR → Generate Phase 0 Spike Content** | Generates prefabs, the network prefab list, the visionOS volume camera config and `Main.unity` |
 | **Tools → MR → Apply visionOS Player Settings** | Sets the Apple signing team and the microphone usage description (without it visionOS kills the app when voice starts) |
+| **Tools → MR → Enable / Disable OpenXR in Editor** | Turns the OpenXR loader for editor Play mode on or off (used with the Meta XR Simulator on Windows; enabled by default and harmless on macOS) |
 
 > **Multiplayer Play Mode tip:** after changing a scene, turn the virtual players off and on again in the Multiplayer Play Mode window. Code changes reach them automatically, but they keep using the copy of the scene they already had open.
 

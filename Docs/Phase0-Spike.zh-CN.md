@@ -32,11 +32,17 @@
    - Authentication 默认开启了匿名登录，**不需要**再配置用户名密码提供商。
 
 ### 3. XR Plug-in Management（Edit → Project Settings → XR Plug-in Management）
-- **Android 页签**：勾选 **OpenXR**，并勾选 **Meta Quest** 特性组。然后在 OpenXR 页签里：
-  - 交互配置文件：添加 *Oculus Touch Controller Profile* 和 *Hand Interaction Profile*
-  - 特性：启用 *Meta Quest Support*、*Meta Quest: Session*、*Meta Quest: Camera (Passthrough)*、*Meta Quest: Planes*、*Hand Tracking Subsystem*
+- **Android 页签**（仓库里已经配好）：使用 **OpenXR** 加载器，并开启了：
+  - Meta Quest Support；交互配置：Oculus Touch、Meta Quest Touch Plus / Pro 手柄和 Hand Interaction（手势）
+  - Meta OpenXR 的 AR 功能：Session、Camera（透视）、Planes（平面）、Raycast；Hand Tracking 和 Meta Hand Tracking Aim；Composition Layers；Foveated Rendering（注视点渲染）
+  - Player Settings：包名 `edu.nyu.moe.visionpro1`、IL2CPP、ARM64、Vulkan、最低 API 32、网络权限设为必需
+- **Standalone 页签**（已配好）：使用 **OpenXR** 加载器，开启了 Touch / Touch Plus 手柄和手势交互配置，供 Windows 上的 Meta XR Simulator 使用（见测试 B2）。没有 OpenXR 运行时的机器（比如 macOS）上 XR 不会启动，编辑器继续用键盘鼠标操作。相关菜单：**Tools → MR → Enable / Disable OpenXR in Editor**。
 - **visionOS 页签**：勾选 **Apple visionOS**，App Mode 选 **RealityKit with PolySpatial**。
-- 最后打开 **Project Validation**，对两个平台都点 *Fix All*。
+- 最后打开 **Project Validation**。以下几条是已知的、可以忽略的提示：
+  - *At least one interaction profile must be added* 和 *Composition Layers Support feature is required*：当 Build Settings 窗口里选中的不是 Android 时出现的误报（这两条规则读的是"选中的平台"）。
+  - *Soft shadows* 和 *Screen Space Ambient Occlusion*：来自 **PC** 画质档位。Quest 用的是 **Mobile** 档位，这两项都没有。
+  - *PoseControl* 和 *StickControl*：可选项，会改动整个项目的输入类型，有意跳过。
+  - 校验或构建时 `MetaQuestFeature.cs:539` 出现的 `NullReferenceException` 也是同一个 OpenXR 包的问题，不影响构建。
 
 ### 4. 权限说明（Player Settings → visionOS → Other Settings，以及 Apple visionOS 设置页）
 - Hand Tracking Usage Description："用于在多人场景中同步你的手部动作"
@@ -62,9 +68,20 @@
 5. 每个玩家按 Multiplayer Play Mode 的编号命名（`Editor-P1`、`Editor-P2`……），并被分配到方块周围不同的座位（`SeatAssigner`）。虚拟玩家会跳过语音：Vivox 的原生库在虚拟玩家里无法加载。
 6. **修改场景之后，要把虚拟玩家关掉再打开。** 代码改动会自动同步给它们，但它们会继续使用之前已经打开的那份场景。
 
-### B. Quest
-- Build Settings 切到 Android → Build And Run。也可以用 Quest Link 直接在编辑器里跑。
-- 如果看不到平面或透视画面，先在头显系统设置里完成"空间设置"。
+### B. Quest（真机）
+1. 把构建目标切到 **Android**（Build Profiles）。
+2. 构建：APK 会输出到 `Build/Android/`。用 Meta Quest Developer Hub 或 `adb install -r MRSpike.apk` 安装；头显连着电脑时也可以直接用 Build And Run。
+3. 如果看不到平面或透视画面，先在头显系统设置里完成"空间设置"。
+
+会话在云端，所以 Quest 不需要和其他设备在同一个网络里：手上有头显的人装好 APK，在任何地方都能和 Vision Pro、编辑器的玩家进入同一个会话。
+
+### B2. 没有头显时测试 Quest：Windows + Meta XR Simulator
+1. 在 Windows 电脑上安装 Unity **6000.3.25f1**，克隆本仓库。
+2. 通过 Package Manager 安装 **Meta XR Simulator** 包（`com.meta.xr.simulator`，Unity Asset Store 上免费）。只装在本机：模拟器是每台机器自己的工具，这个包的改动不要提交。
+3. **Project Settings → XR Plug-in Management → OpenXR（Windows 页签）→ Play Mode OpenXR Runtime → Meta XR Simulator**。
+4. 打开 `Main.unity` 按 Play。模拟器窗口会弹出来，在里面操控模拟的头显、Touch 手柄和手。编辑器会像其他玩家一样加入共享会话，所以 Mac 上的编辑器或 Vision Pro 可以同时加入。
+
+能验证的：在类似 Quest 的 OpenXR 运行时上，头部和手柄 / 手的姿态能否通过 `HardwareRig` 正常读取，以及配合联网的表现。验证不了的：透视、平面检测和真机性能，这些仍然需要头显。
 
 ### C. Vision Pro
 - Build Settings 切到 visionOS → Build，在 Xcode 中打开生成的工程，部署到真机。
@@ -91,7 +108,7 @@
 | 方块绕圈，每 5 秒换所有者和颜色 | ✅ 各端一致地按 1 → 2 → 3 → 1 轮换 |
 | 会话创建者离开后会话仍在 | ✅ 剩下两人仍在会话中，方块继续在他们之间传递 |
 | 语音 | ✅ 主编辑器连接成功；虚拟玩家按设计跳过语音 |
-| Meta Quest | ⏳ 尚未测试（需要先安装 Android Build Support 模块） |
+| Meta Quest | ✅ APK 能成功构建（清单中已确认 OpenXR、Meta Quest 功能、透视、手部追踪和 VR 启动类别）；⏳ 还没在头显或 Meta XR Simulator 上运行 |
 | Vision Pro 上的座位效果 | ⏳ 编辑器里正常，还没在真机上确认 |
 
 测试中修复的问题：

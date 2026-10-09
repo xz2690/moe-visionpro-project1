@@ -32,11 +32,17 @@ The spike scene needs no input: every device signs in anonymously on launch → 
    - Anonymous sign-in is enabled in Authentication by default; **no** username/password provider is needed.
 
 ### 3. XR Plug-in Management (Edit → Project Settings → XR Plug-in Management)
-- **Android tab**: check **OpenXR** and the **Meta Quest** feature group. Then on the OpenXR page:
-  - Interaction profiles: add *Oculus Touch Controller Profile* and *Hand Interaction Profile*
-  - Features: enable *Meta Quest Support*, *Meta Quest: Session*, *Meta Quest: Camera (Passthrough)*, *Meta Quest: Planes*, *Hand Tracking Subsystem*
+- **Android tab** (already configured in the repo): **OpenXR** loader, with
+  - Meta Quest Support; interaction profiles for Oculus Touch, Meta Quest Touch Plus / Pro and Hand Interaction
+  - Meta OpenXR AR features: Session, Camera (passthrough), Planes, Raycast; Hand Tracking + Meta Hand Tracking Aim; Composition Layers; Foveated Rendering
+  - Player Settings: package `edu.nyu.moe.visionpro1`, IL2CPP, ARM64, Vulkan, minimum API 32, internet access required
+- **Standalone tab** (already configured): **OpenXR** loader with Touch / Touch Plus / hand profiles, used for the Meta XR Simulator on Windows (see test B2). Without an OpenXR runtime, as on macOS, XR simply doesn't start and the editor keeps using keyboard and mouse. Menu items: **Tools → MR → Enable / Disable OpenXR in Editor**.
 - **visionOS tab**: check **Apple visionOS** and set App Mode to **RealityKit with PolySpatial**.
-- Finally open **Project Validation** and click *Fix All* for both platforms.
+- Finally open **Project Validation**. Known leftovers that can be ignored:
+  - *At least one interaction profile must be added* and *Composition Layers Support feature is required*: false positives when the Build Settings window has a platform other than Android selected (those rules read the selected platform).
+  - *Soft shadows* / *Screen Space Ambient Occlusion*: they come from the **PC** quality level; Quest uses **Mobile**, which has neither.
+  - *PoseControl* / *StickControl*: optional, project-wide input changes; skipped on purpose.
+  - A `NullReferenceException` in `MetaQuestFeature.cs:539` during validation or build is the same OpenXR package bug and does not affect the build.
 
 ### 4. Usage descriptions (Player Settings → visionOS → Other Settings, and the Apple visionOS settings page)
 - Hand Tracking Usage Description: "Used to share your hand movements with other participants"
@@ -62,9 +68,20 @@ Run **Tools → MR → Generate Phase 0 Spike Content** (safe to re-run). It cre
 5. Each player is named after its Multiplayer Play Mode number (`Editor-P1`, `Editor-P2`, ...) and placed in its own seat around the cube (`SeatAssigner`). Virtual players skip voice: Vivox's native library cannot load in them.
 6. **After changing a scene, turn the virtual players off and on again.** Code changes reach them automatically, but they keep the copy of the scene they already had open.
 
-### B. Quest
-- Switch Build Settings to Android → Build And Run, or use Quest Link to run directly from the editor.
-- If you see no planes or passthrough, complete Space Setup in the headset's system settings first.
+### B. Quest (device)
+1. Switch the build target to **Android** (Build Profiles).
+2. Build: the APK goes to `Build/Android/`. Install it with Meta Quest Developer Hub or `adb install -r MRSpike.apk`, or use Build And Run with the headset connected.
+3. If you see no planes or passthrough, complete Space Setup in the headset's system settings first.
+
+Because the session runs in the cloud, the Quest doesn't need to be on the same network: whoever has a headset can install the APK and join the Vision Pro / editor players from anywhere.
+
+### B2. Quest without a headset: Windows + Meta XR Simulator
+1. On a Windows PC, install Unity **6000.3.25f1** and clone the repository.
+2. Install the **Meta XR Simulator** package (`com.meta.xr.simulator`) through the Package Manager (Unity Asset Store, free). Keep it local: the simulator is a per-machine tool, so don't commit the package change.
+3. **Project Settings → XR Plug-in Management → OpenXR (Windows tab) → Play Mode OpenXR Runtime → Meta XR Simulator**.
+4. Open `Main.unity` and press Play. The simulator window opens; control the simulated headset, Touch controllers and hands from it. The editor joins the shared session like any other player, so a Mac editor or the Vision Pro can join at the same time.
+
+What this covers: the OpenXR path on a Quest-like runtime (head and controller / hand poses through `HardwareRig`), together with the networking. Not covered: passthrough, plane detection and real-device performance, which still need a headset.
 
 ### C. Vision Pro
 - Switch Build Settings to visionOS → Build, open the generated project in Xcode and deploy to the device.
@@ -91,7 +108,7 @@ With at least **Editor + Quest + AVP** online at the same time:
 | Cube orbits, changes owner and color every 5 s | ✅ Rotates 1 → 2 → 3 → 1 on all clients |
 | Session survives the creator leaving | ✅ Remaining two players stayed in the session and kept passing the cube |
 | Voice | ✅ Main editor connects; virtual players skip voice by design |
-| Meta Quest | ⏳ Not tested yet (needs the Android Build Support module) |
+| Meta Quest | ✅ APK builds (OpenXR, Meta Quest features, passthrough, hand tracking, VR launcher category confirmed in the manifest); ⏳ not yet run on a headset or the Meta XR Simulator |
 | Seat placement on Vision Pro | ⏳ Works in the editor; not yet checked on device |
 
 Fixed during testing:
