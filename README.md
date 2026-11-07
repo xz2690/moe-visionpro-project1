@@ -53,9 +53,9 @@ Quest path without a headset:
 - Speech layer ported from VoiceCreator: on-device Apple speech recognition and text-to-speech on Vision Pro (Swift bridge), Vivox transcription on Quest, a typed stand-in in the editor. Every panel action is a voice command ("create a session", "join code F R seven M K M", "enter the room", "mute", ...); anything else is sent to all players as a subtitle
 - Verified in the editor (all commands) and with two Multiplayer Play Mode players: join / leave lines, subtitles and the room opening arrive on the other player. Crash and force-quit recovery verified in the visionOS simulator. See [Docs/Lobby.md](Docs/Lobby.md)
 
-### Next: Phase 2
+### Next: Phase 1b, then Phase 2
 
-Rig selection and avatar polish (Quest MR passthrough rig, Vision Pro bounded mode, hand joints), then Phase 3 interaction. Voice recognition on a real Vision Pro and the Quest Vivox transcription path still need headset tests ([Docs/Lobby.md](Docs/Lobby.md), real-device checklist). See [Docs/Plan.md](Docs/Plan.md) for Phases 2–5.
+Voice-driven object creation in the room ("create a red cube on the table", see [Docs/Plan.md](Docs/Plan.md), Phase 1b), then rig selection and avatar polish (Quest MR passthrough rig, Vision Pro bounded mode, hand joints), then Phase 3 interaction. Voice recognition on a real Vision Pro and the Quest Vivox transcription path still need headset tests ([Docs/Lobby.md](Docs/Lobby.md), real-device checklist). See [Docs/Plan.md](Docs/Plan.md) for Phases 2–5.
 
 ## Quick start
 

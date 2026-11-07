@@ -53,9 +53,9 @@ Unity 6.3 混合现实多人项目：Vision Pro（PolySpatial / RealityKit）和
 - 从 VoiceCreator 移植的语音层：Vision Pro 上用设备端 Apple 语音识别和朗读（Swift 桥接），Quest 上用 Vivox 转写，编辑器里用文本替身。面板上的每个操作都是语音指令（"create a session"、"join code F R seven M K M"、"enter the room"、"mute" 等）；其他话作为字幕发给所有玩家
 - 已在编辑器验证全部指令，并用 Multiplayer Play Mode 两人验证：加入 / 离开提示、字幕和房间打开都到达另一位玩家。崩溃和强退恢复已在 visionOS 模拟器验证。详见 [Docs/Lobby.zh-CN.md](Docs/Lobby.zh-CN.md)
 
-### 下一步：阶段 2
+### 下一步：阶段 1b，然后阶段 2
 
-Rig 选择和 Avatar 完善（Quest MR 透视 Rig、Vision Pro 有界模式、手部关节），然后是阶段 3 的交互。Vision Pro 真机的语音识别和 Quest 的 Vivox 转写路径还需要头显测试（见 [Docs/Lobby.zh-CN.md](Docs/Lobby.zh-CN.md) 的真机清单）。阶段 2–5 详见 [Docs/Plan.zh-CN.md](Docs/Plan.zh-CN.md)。
+房间内语音生成实体（"create a red cube on the table"，见 [Docs/Plan.zh-CN.md](Docs/Plan.zh-CN.md) 阶段 1b），然后是 Rig 选择和 Avatar 完善（Quest MR 透视 Rig、Vision Pro 有界模式、手部关节），然后是阶段 3 的交互。Vision Pro 真机的语音识别和 Quest 的 Vivox 转写路径还需要头显测试（见 [Docs/Lobby.zh-CN.md](Docs/Lobby.zh-CN.md) 的真机清单）。阶段 2–5 详见 [Docs/Plan.zh-CN.md](Docs/Plan.zh-CN.md)。
 
 ## 快速开始
 

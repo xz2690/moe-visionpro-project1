@@ -72,12 +72,21 @@ XR Plug-in Management：Android → OpenXR（Meta Quest 特性组 + Meta OpenXR 
 4. 验证 Vivox 能否在 visionOS 上编译和通话。
 5. **出口条件**：DA 在三端稳定；如果 DA 在 visionOS 上有问题，退回 Relay 客户端-主机模式（复用原型的 `StartHostRelay`/`JoinRelay` 思路，但通过 Sessions 的 `WithRelayNetwork()`）。如果 Vivox 不支持 visionOS，语音降级为可选或改用其他方案。
 
-### 阶段 1：项目骨架与会话流程
+### 阶段 1：项目骨架与会话流程（已完成，见 Lobby.zh-CN.md）
 - 按上面的结构重组仓库，加 asmdef，清理原型和模板残留。
 - `AnonymousAuthProvider`：`SignInAnonymouslyAsync` + `UpdatePlayerNameAsync`，昵称存 PlayerPrefs。
 - `SessionManager`：Create（返回短码）/ QuickJoin / JoinByCode / Leave，玩家属性带昵称和平台/模式。
-- 世界空间连接面板：昵称输入（Quest 用系统键盘，AVP 用 visionOS 系统键盘）、创建、加入码、快速加入。
+- 世界空间连接面板：创建、输入会话码（面板键盘）、快速加入。昵称保持自动生成；面板上的每个操作都可以用语音完成，自由说话作为字幕显示（语音层移植自 VoiceCreator）。
 - 单一 Main 场景（MR 下不需要大厅场景切换），连接后在本地生成网络 rig。
+
+### 阶段 1b：房间内语音生成实体
+- 目标：在共享房间里，玩家说出要加什么，联网物体就出现在所有人面前，例如 "create a red cube on the table"、"add a big blue sphere here"、"delete the last one"、"make it bigger"、"turn it green"。
+- 语法在本地解析，方式同 `VoiceCommands`：形状（立方体、球、圆柱、胶囊和少量道具）、颜色词、大小词（small / big）、位置（桌上、这里 / 我面前、上一个旁边）。不依赖外部服务；词汇加入 Apple 语音的上下文词表。
+- 生成：说话的玩家生成一个已注册的网络 Prefab 并拥有它（Distributed Authority）；每个生成的物体都带 `NetworkInteractable`，其他人马上可以点击和拖动。位置取桌面上的空位或说话者视线上的一点；小标签显示创建者。
+- 修改指令作用于说话者最近创建的物体，或正在注视的物体。
+- 反馈：面板 / 朗读回复，并在会话聊天里加一条系统提示（"AVP-246 created a red cube"）。
+- 后续可选：用 LLM 解析自由描述，默认关闭，因为需要联网。
+- 测试：解析器单元测试；编辑器文本指令；MPPM 两人（物体在另一位玩家那里出现并同步移动）；visionOS 模拟器 `MR_SAY` 注入。
 
 ### 阶段 2：Rig 选择与 Avatar 同步
 - 硬件 rig 和网络 rig 分离：本地 `HardwareRig` 采集 头 / 左手 / 右手 / 手指；`NetworkRig`（玩家 Prefab）每帧从本地硬件 rig 拷贝，用 Owner 授权的 `NetworkTransform` 同步头和手腕。
@@ -94,7 +103,7 @@ XR Plug-in Management：Android → OpenXR（Meta Quest 特性组 + Meta OpenXR 
 - 手部菜单：手掌朝向头部时显示积木菜单（XR Hands 手势检测），从菜单拿起时用 `NetworkObject.Spawn` 生成积木。
 - 磁吸：积木顶部和侧面有吸附点，松手时吸附到最近的点；本地 AR 平面加碰撞体，也作为吸附目标（平面本身不同步，只同步积木的最终位置）。
 
-### 阶段 4：语音
+### 阶段 4：语音（频道加入、静音和说话指示已在阶段 1 完成；剩余位置音频）
 - `VoiceManager`：登录 Vivox → 加入以 Session Id 命名的频道（Unbounded / Quest 用户用位置频道，Bounded 用户用普通频道）；处理麦克风权限（Android 清单、visionOS Info.plist）；静音按钮放在手部菜单里。
 
 ### 阶段 5：平台打磨与性能

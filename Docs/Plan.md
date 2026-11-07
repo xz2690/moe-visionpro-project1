@@ -72,12 +72,21 @@ Goal: on all three targets (Editor / Quest 3 / AVP), get "join the same session 
 4. Verify Vivox compiles and works on visionOS.
 5. **Exit criteria**: DA is stable on all three targets. If DA has problems on visionOS, fall back to Relay client-host mode (same idea as the prototype's `StartHostRelay`/`JoinRelay`, but via Sessions' `WithRelayNetwork()`). If Vivox does not support visionOS, make voice optional or switch providers.
 
-### Phase 1: Project skeleton and session flow
+### Phase 1: Project skeleton and session flow (done, see Lobby.md)
 - Restructure the repo as above, add asmdefs, remove prototype and template leftovers.
 - `AnonymousAuthProvider`: `SignInAnonymouslyAsync` + `UpdatePlayerNameAsync`; display name stored in PlayerPrefs.
 - `SessionManager`: Create (returns a short code) / QuickJoin / JoinByCode / Leave; player properties carry display name and platform / mode.
-- World-space connection panel: display name input (system keyboard on Quest and visionOS), Create, join code, Quick Join.
+- World-space connection panel: Create, join code (on-panel keypad), Quick Join. Display names stay auto-generated; every panel action is also a voice command, and free speech is shown as subtitles (speech layer ported from VoiceCreator).
 - A single Main scene (MR does not need a separate lobby scene); the network rig spawns locally after connecting.
+
+### Phase 1b: Voice-driven object creation in the room
+- Goal: inside the shared room, a player says what to add and the networked object appears for everyone, e.g. "create a red cube on the table", "add a big blue sphere here", "delete the last one", "make it bigger", "turn it green".
+- Grammar parsed locally, like `VoiceCommands`: shape (cube, sphere, cylinder, capsule, a few props), color words, size words (small / big), placement (on the table, here / in front of me, next to the last one). No external service; the vocabulary goes into the Apple speech contextual strings.
+- Spawning: the speaker spawns a registered network prefab and owns it (Distributed Authority); every spawned object carries `NetworkInteractable`, so the others can tap and drag it right away. Placement picks a free spot on the table or a point along the speaker's gaze ray; a small label shows who created it.
+- Edits apply to the last object the speaker created, or to the object the speaker is looking at.
+- Feedback: panel / spoken reply, plus a system line in the session chat ("AVP-246 created a red cube").
+- Later option: an LLM for free-form descriptions, off by default because it needs network access.
+- Tests: parser unit test; editor typed commands; two Multiplayer Play Mode players (objects appear and move on the other player); visionOS simulator with `MR_SAY`.
 
 ### Phase 2: Rig selection and avatar sync
 - Split hardware rig and network rig: the local `HardwareRig` captures head / left hand / right hand / fingers; `NetworkRig` (the player prefab) copies from the local hardware rig every frame and syncs head and wrists with owner-authoritative `NetworkTransform`s.
@@ -94,7 +103,7 @@ Goal: on all three targets (Editor / Quest 3 / AVP), get "join the same session 
 - Hand menu: shows the block menu when the palm faces the head (XR Hands gesture detection); taking a block from the menu spawns it with `NetworkObject.Spawn`.
 - Magnets: blocks have snap points on top and sides and snap to the nearest point on release; local AR planes get colliders and act as snap targets too (planes are not synced, only the blocks' final positions).
 
-### Phase 4: Voice
+### Phase 4: Voice (channel join, mute and speaking indicators done in Phase 1; positional audio remains)
 - `VoiceManager`: log in to Vivox → join a channel named after the session Id (positional channel for Unbounded / Quest users, regular channel for Bounded users); handle microphone permission (Android manifest, visionOS Info.plist); mute button in the hand menu.
 
 ### Phase 5: Platform polish and performance
