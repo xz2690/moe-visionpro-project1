@@ -98,6 +98,8 @@ The Meta XR Simulator is an OpenXR runtime that simulates a Quest 3: headset, To
 What this covers: the OpenXR path on a Quest-like runtime (head pose, Touch controller and hand poses through `HardwareRig`) together with networking and voice. Not covered: passthrough (the background renders black), plane detection and real-device performance, which still need a headset.
 
 ### C. Vision Pro
+> **Quit Xcode.app before building for visionOS from Unity.** With Xcode 27 running, Unity 6000.3's visionOS build step crashes the editor while asking Xcode whether the generated project is open (`IsXcodeProjectOpen` → unrecognized selector). Build with Xcode closed, then open the generated project. DeviceHub (the simulator window) can stay open.
+
 - Switch Build Settings to visionOS → Build, open the generated project in Xcode and deploy to the device.
 - Or use **PolySpatial → Play to Device** for fast iteration.
 

@@ -8,10 +8,12 @@ Networking is built entirely on the Unity stack: Netcode for GameObjects (Distri
 
 - Project plan: [Docs/Plan.md](Docs/Plan.md)
 - Phase 0 setup, test guide and results: [Docs/Phase0-Spike.md](Docs/Phase0-Spike.md)
+- Shared room, table objects and the cross-platform pointer: [Docs/Room.md](Docs/Room.md)
+- Lobby panel, voice commands and subtitles: [Docs/Lobby.md](Docs/Lobby.md)
 
 ## Status
 
-**Phase 0 (cross-platform networking spike) is complete. The project is ready for Phase 1.**
+**Phase 0 (cross-platform networking spike) and Phase 1 (lobby and session flow, with voice commands) are complete. The project is ready for Phase 2.**
 
 ### Tests passed
 
@@ -39,9 +41,21 @@ Quest path without a headset:
 - Meta Quest on a headset: the Android build is configured and the APK builds, but it has not run on a Quest yet. Without a headset, use the Meta XR Simulator on macOS or Windows ([Docs/Phase0-Spike.md](Docs/Phase0-Spike.md), test B2)
 - Seat placement on Vision Pro: moving the XR Origin together with the PolySpatial Volume Camera works in the editor, but has not been checked on device
 
-### Next: Phase 1
+### Shared room (added after Phase 0)
 
-World-space connection panel (display name, Create / Quick Join / join by code) in place of the automatic Quick Join, on top of the session flow above. See [Docs/Plan.md](Docs/Plan.md) for Phases 1–5.
+- **Enter Room** button in the lobby (3D, works with gaze + pinch, controllers, hands and the mouse): the whole session enters a 12 × 12 m room with a table
+- Three objects on the table: tap to cycle color, drag to move; ownership follows whoever touches them, state syncs to everyone
+- Verified in the editor with the pointer injection hook: open room → tap → drag. See [Docs/Room.md](Docs/Room.md)
+
+### Lobby and voice commands (Phase 1)
+
+- World-space lobby panel that follows the user: Create / Quick Join / Join by code (on-panel keypad) before a session; code, player list (platform, speaking, muted), session chat and Enter Room / Mute / Leave inside one. Automatic Quick Join is off by default (editor toggle and `-autojoin` for tests)
+- Speech layer ported from VoiceCreator: on-device Apple speech recognition and text-to-speech on Vision Pro (Swift bridge), Vivox transcription on Quest, a typed stand-in in the editor. Every panel action is a voice command ("create a session", "join code F R seven M K M", "enter the room", "mute", ...); anything else is sent to all players as a subtitle
+- Verified in the editor (all commands) and with two Multiplayer Play Mode players: join / leave lines, subtitles and the room opening arrive on the other player. Crash and force-quit recovery verified in the visionOS simulator. See [Docs/Lobby.md](Docs/Lobby.md)
+
+### Next: Phase 2
+
+Rig selection and avatar polish (Quest MR passthrough rig, Vision Pro bounded mode, hand joints), then Phase 3 interaction. Voice recognition on a real Vision Pro and the Quest Vivox transcription path still need headset tests ([Docs/Lobby.md](Docs/Lobby.md), real-device checklist). See [Docs/Plan.md](Docs/Plan.md) for Phases 2–5.
 
 ## Quick start
 
@@ -54,9 +68,14 @@ Editor menu items:
 | Menu | What it does |
 |---|---|
 | **Tools → MR → Generate Phase 0 Spike Content** | Generates prefabs, the network prefab list, the visionOS volume camera config and `Main.unity` |
-| **Tools → MR → Apply visionOS Player Settings** | Sets the Apple signing team and the microphone usage description (without it visionOS kills the app when voice starts) |
+| **Tools → MR → Generate Room Content** | Generates the Room scene, the table objects and the RoomController prefab (also run by *Generate Phase 0 Spike Content*) |
+| **Tools → MR → Generate Lobby Content** | Generates the lobby panel, keypad, mic orb, voice components and the SessionChat prefab (also run by *Generate Phase 0 Spike Content*) |
+| **Tools → MR → Auto Quick Join In Editor** | Toggles automatic Quick Join on Play for the editor and MPPM virtual players (off = use the lobby panel) |
+| **Tools → MR → Apply visionOS Player Settings** | Sets the Apple signing team and the microphone usage description (without it visionOS kills the app when voice starts); the speech recognition usage description is added to the Xcode project at build time |
 | **Tools → MR → Enable / Disable OpenXR in Editor** | Turns the OpenXR loader for editor Play mode on or off (used with the Meta XR Simulator; enabled by default, and without an active OpenXR runtime the editor just keeps keyboard / mouse) |
 
+> **visionOS builds:** quit Xcode before building from Unity (with Xcode 27 open the build step crashes the editor).
+>
 > **Multiplayer Play Mode tip:** after changing a scene, turn the virtual players off and on again in the Multiplayer Play Mode window. Code changes reach them automatically, but they keep using the copy of the scene they already had open.
 
 ## History

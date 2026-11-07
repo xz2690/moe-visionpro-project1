@@ -36,5 +36,32 @@ namespace MR.EditorTools
             Debug.Log($"[visionOS Setup] Automatic signing on, team {PlayerSettings.iOS.appleDeveloperTeamID}; " +
                       "microphone usage description set. Rebuild visionOS (Replace) to regenerate the Xcode project.");
         }
+
+        private const string SpeechUsage = "Turns your voice into lobby commands, on this device.";
+
+        /// <summary>
+        /// Unity regenerates Info.plist on every build and has no Player Setting for speech
+        /// recognition. Without NSSpeechRecognitionUsageDescription visionOS kills the app the
+        /// first time SFSpeechRecognizer asks for permission.
+        /// </summary>
+        [UnityEditor.Callbacks.PostProcessBuild(100)]
+        public static void AddPlistKeys(BuildTarget target, string buildPath)
+        {
+            if (target != BuildTarget.VisionOS) return;
+            string plistPath = System.IO.Path.Combine(buildPath, "Info.plist");
+            if (!System.IO.File.Exists(plistPath))
+            {
+                Debug.LogWarning("[visionOS Setup] Info.plist not found at " + plistPath);
+                return;
+            }
+
+            var plist = new UnityEditor.iOS.Xcode.PlistDocument();
+            plist.ReadFromFile(plistPath);
+            plist.root.SetString("NSSpeechRecognitionUsageDescription", SpeechUsage);
+            if (!plist.root.values.ContainsKey("NSMicrophoneUsageDescription"))
+                plist.root.SetString("NSMicrophoneUsageDescription", MicrophoneUsage);
+            plist.WriteToFile(plistPath);
+            Debug.Log("[visionOS Setup] Added the speech recognition usage description to Info.plist");
+        }
     }
 }

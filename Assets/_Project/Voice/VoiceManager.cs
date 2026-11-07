@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MR.Auth;
 using MR.Core;
@@ -11,23 +12,30 @@ namespace MR.Voice
 {
     /// <summary>
     /// Joins a Vivox voice channel named after the current session, so everyone in
-    /// the same session can talk. Phase 0 uses a plain group channel; positional
-    /// audio (Quest + AVP Unbounded) is added in Phase 4.
+    /// the same session can talk, and tracks who is speaking or muted for the lobby
+    /// panel. Phase 0 uses a plain group channel; positional audio (Quest + AVP
+    /// Unbounded) is added in Phase 4. Transcription is enabled at login so VivoxVoice
+    /// can use it for speech recognition on Quest.
     /// </summary>
     public class VoiceManager : MonoBehaviour
     {
         public static VoiceManager Instance { get; private set; }
 
         public event Action<string> StatusChanged;
+        /// <summary>Someone joined, left, started or stopped speaking, or changed mute.</summary>
+        public event Action ParticipantsChanged;
 
         [SerializeField] private bool joinWithSession = true;
 
         private bool _vivoxInitialized;
+        private bool _eventsHooked;
         private string _channelName;
         private SessionManager _sessions;
+        private readonly Dictionary<string, VivoxParticipant> _participants = new();
 
         public string LastStatus { get; private set; } = "Voice idle";
         public bool IsInChannel => _channelName != null;
+        public string ChannelName => _channelName;
         public bool IsMuted { get; private set; }
 
         private void Awake()
@@ -60,6 +68,11 @@ namespace MR.Voice
                 _sessions.Joined -= OnSessionJoined;
                 _sessions.Left -= OnSessionLeft;
             }
+            if (_eventsHooked)
+            {
+                VivoxService.Instance.ParticipantAddedToChannel -= OnParticipantAdded;
+                VivoxService.Instance.ParticipantRemovedFromChannel -= OnParticipantRemoved;
+            }
             if (Instance == this) Instance = null;
         }
 
@@ -70,7 +83,17 @@ namespace MR.Voice
             else VivoxService.Instance.UnmuteInputDevice();
             IsMuted = muted;
             Report(muted ? "Mic muted" : "Mic live");
+            ParticipantsChanged?.Invoke();
         }
+
+        /// <summary>Vivox's speech detection for a session player (by Unity Authentication player id).</summary>
+        public bool IsSpeaking(string playerId) =>
+            playerId != null && _participants.TryGetValue(playerId, out var p) && p.SpeechDetected;
+
+        public bool IsParticipantMuted(string playerId) =>
+            playerId != null && _participants.TryGetValue(playerId, out var p) && p.IsMuted;
+
+        public bool IsInVoice(string playerId) => playerId != null && _participants.ContainsKey(playerId);
 
         private async void OnSessionJoined(ISession session)
         {
@@ -85,6 +108,7 @@ namespace MR.Voice
                 await VivoxService.Instance.JoinGroupChannelAsync(channel, ChatCapability.AudioOnly);
                 _channelName = channel;
                 Report("Voice connected");
+                ParticipantsChanged?.Invoke();
             }
             catch (Exception ex)
             {
@@ -97,6 +121,8 @@ namespace MR.Voice
         {
             if (_channelName == null) return;
             _channelName = null;
+            _participants.Clear();
+            ParticipantsChanged?.Invoke();
             try
             {
                 await VivoxService.Instance.LeaveAllChannelsAsync();
@@ -117,15 +143,42 @@ namespace MR.Voice
                 _vivoxInitialized = true;
             }
 
+            if (!_eventsHooked)
+            {
+                VivoxService.Instance.ParticipantAddedToChannel += OnParticipantAdded;
+                VivoxService.Instance.ParticipantRemovedFromChannel += OnParticipantRemoved;
+                _eventsHooked = true;
+            }
+
             if (!VivoxService.Instance.IsLoggedIn)
             {
                 Report("Voice signing in...");
                 await VivoxService.Instance.LoginAsync(new LoginOptions
                 {
-                    DisplayName = AuthManager.Instance != null ? AuthManager.Instance.DisplayName : null
+                    DisplayName = AuthManager.Instance != null ? AuthManager.Instance.DisplayName : null,
+                    // Lets VivoxVoice turn channel transcription on for speech commands (Quest).
+                    SpeechToTextLanguages = new List<string> { "en-US" }
                 });
             }
         }
+
+        private void OnParticipantAdded(VivoxParticipant participant)
+        {
+            _participants[participant.PlayerId] = participant;
+            participant.ParticipantSpeechDetected += OnParticipantStateChanged;
+            participant.ParticipantMuteStateChanged += OnParticipantStateChanged;
+            ParticipantsChanged?.Invoke();
+        }
+
+        private void OnParticipantRemoved(VivoxParticipant participant)
+        {
+            participant.ParticipantSpeechDetected -= OnParticipantStateChanged;
+            participant.ParticipantMuteStateChanged -= OnParticipantStateChanged;
+            _participants.Remove(participant.PlayerId);
+            ParticipantsChanged?.Invoke();
+        }
+
+        private void OnParticipantStateChanged() => ParticipantsChanged?.Invoke();
 
         // visionOS shows its own prompt from NSMicrophoneUsageDescription the first time
         // Vivox opens the mic; Android needs an explicit runtime request.

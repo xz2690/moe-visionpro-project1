@@ -24,6 +24,8 @@ namespace MR.Networking
     {
         public const string PlayerNameProperty = "name";
         public const string PlayerPlatformProperty = "platform";
+        /// <summary>"1" once the creator's network is up; Quick Join only considers such sessions.</summary>
+        public const string ReadyProperty = "ready";
 
         public static SessionManager Instance { get; private set; }
 
@@ -76,10 +78,136 @@ namespace MR.Networking
                 async () => await MultiplayerService.Instance.CreateSessionAsync(BuildSessionOptions()));
 
         /// <summary>Joins any open session of this type, or creates one if none exists.</summary>
-        public Task<bool> QuickJoinAsync() =>
-            RunAsync("Looking for a session...",
-                () => MultiplayerService.Instance.MatchmakeSessionAsync(
-                    new QuickJoinOptions { CreateSession = true }, BuildSessionOptions()));
+        /// <summary>
+        /// Quick Join with a watchdog. The Distributed Authority allocation can take minutes to
+        /// time out inside the SDK (e.g. right after a crash, while the service still holds the
+        /// old connection), so an attempt that does not finish in time is abandoned and retried.
+        /// </summary>
+        public async Task<bool> QuickJoinAsync()
+        {
+            for (int attempt = 1; attempt <= MaxQuickJoinAttempts; attempt++)
+            {
+                if (await RunAsync("Looking for a session...", () => WithTimeout(QuickJoinOrReconnectAsync(), SetupTimeout)))
+                    return true;
+                if (ActiveSession != null) return false; // RunAsync refused for another reason
+                Report($"Session setup failed, retrying ({attempt}/{MaxQuickJoinAttempts})...");
+                await Task.Delay(2000);
+            }
+            Report("Could not join a session. Check the connection and restart.");
+            return false;
+        }
+
+        private const int MaxQuickJoinAttempts = 4;
+        private static readonly TimeSpan SetupTimeout = TimeSpan.FromSeconds(30);
+
+        private static async Task<ISession> WithTimeout(Task<ISession> setup, TimeSpan timeout)
+        {
+            var finished = await Task.WhenAny(setup, Task.Delay(timeout));
+            if (finished != setup)
+            {
+                _ = ObserveAbandonedAsync(setup);
+                throw new TimeoutException($"session setup took longer than {timeout.TotalSeconds:0}s");
+            }
+            return await setup;
+        }
+
+        // The SDK task keeps running after we gave up on it. If it ever completes, its lobby is
+        // left behind as a stale membership (cleaned on the next start); it is not touched here,
+        // because leaving it would also shut down the Netcode instance of the session we did join.
+        private static async Task ObserveAbandonedAsync(Task<ISession> setup)
+        {
+            try
+            {
+                var late = await setup;
+                Debug.LogWarning($"[Session] Abandoned attempt finished late with session {late.Code}; ignoring it.");
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"[Session] Abandoned attempt ended: {ex.Message}");
+            }
+        }
+
+        private async Task<ISession> QuickJoinOrReconnectAsync()
+        {
+            await LeaveStaleSessionsAsync();
+
+            Report("Looking for a session...");
+            var quickJoin = new QuickJoinOptions
+            {
+                CreateSession = true,
+                Timeout = TimeSpan.FromSeconds(5),
+                Filters = new List<FilterOption> { new(FilterField.StringIndex1, "1", FilterOperation.Equal) }
+            };
+            return await MultiplayerService.Instance.MatchmakeSessionAsync(quickJoin, BuildSessionOptions());
+        }
+
+        /// <summary>
+        /// A crash or force-quit skips the leave, so the service may still list this player
+        /// in a session. Quick Join then cannot put us back into it, and reconnecting to a
+        /// session whose network never finished starting gives a session without Netcode.
+        /// Removing the stale membership first lets Quick Join find or create a healthy one
+        /// (including the same session, if others are still in it).
+        /// </summary>
+        private async Task LeaveStaleSessionsAsync()
+        {
+            List<string> joined;
+            try { joined = await MultiplayerService.Instance.GetJoinedSessionIdsAsync(); }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[Session] Could not list joined sessions: {ex.Message}");
+                return;
+            }
+
+            if (joined.Count == 0) return;
+
+            var lobbies = Unity.Services.Lobbies.LobbyService.Instance;
+            string me = AuthManager.Instance.PlayerId;
+            foreach (var id in joined)
+            {
+                try
+                {
+                    var lobby = await lobbies.GetLobbyAsync(id);
+                    if (lobby.HostId == me && lobby.Players.Count <= 1)
+                    {
+                        // Our own dead session: delete it so Quick Join can't hand it back to us.
+                        await lobbies.DeleteLobbyAsync(id);
+                        Debug.Log($"[Session] Deleted stale session {id}");
+                    }
+                    else
+                    {
+                        await lobbies.RemovePlayerAsync(id, me);
+                        Debug.Log($"[Session] Left stale session {id}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[Session] Could not leave stale session {id}: {ex.Message}");
+                }
+            }
+
+            // The lobby query index is eventually consistent; give it a moment before Quick Join.
+            await Task.Delay(1500);
+        }
+
+        /// <summary>
+        /// The session is only advertised to Quick Join once its network is up. A creator
+        /// that dies between creating the lobby and starting Netcode would otherwise leave a
+        /// joinable session that nobody can actually connect to.
+        /// </summary>
+        private static async Task MarkReadyIfHostAsync(ISession session)
+        {
+            if (!session.IsHost) return;
+            try
+            {
+                var host = session.AsHost();
+                host.SetProperty(ReadyProperty, new SessionProperty("1", VisibilityPropertyOptions.Public, PropertyIndex.String1));
+                await host.SavePropertiesAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[Session] Could not mark the session ready: {ex.Message}");
+            }
+        }
 
         public Task<bool> JoinByCodeAsync(string code)
         {
@@ -155,6 +283,7 @@ namespace MR.Networking
             {
                 var session = await operation();
                 Attach(session);
+                await MarkReadyIfHostAsync(session);
                 Report($"In session {session.Code} ({session.PlayerCount}/{session.MaxPlayers})");
                 return true;
             }
@@ -181,7 +310,12 @@ namespace MR.Networking
             {
                 MaxPlayers = maxPlayers,
                 Type = sessionType,
-                PlayerProperties = BuildPlayerProperties()
+                PlayerProperties = BuildPlayerProperties(),
+                SessionProperties = new Dictionary<string, SessionProperty>
+                {
+                    // Flipped to "1" by MarkReadyIfHostAsync once Netcode is connected.
+                    [ReadyProperty] = new("0", VisibilityPropertyOptions.Public, PropertyIndex.String1)
+                }
             };
 
             return networkMode == SessionNetworkMode.DistributedAuthority

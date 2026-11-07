@@ -53,11 +53,15 @@ namespace MR.EditorTools
 
             AssetDatabase.SaveAssets();
             Debug.Log("[ProjectSetup] Phase 0 spike content generated. Open " + ScenePath);
+
+            // The shared room and the lobby build on top of the Main scene and the prefab list.
+            RoomSetup.Generate();
+            LobbySetup.Generate();
         }
 
         // ── Assets ─────────────────────────────────
 
-        private static Material CreateLitMaterial(string name, Color color)
+        internal static Material CreateLitMaterial(string name, Color color)
         {
             string path = $"{MaterialDir}/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -116,7 +120,7 @@ namespace MR.EditorTools
             root.name = "OwnershipProbe";
             root.transform.localScale = Vector3.one * 0.2f;
             root.GetComponent<Renderer>().sharedMaterial = mat;
-            root.AddComponent<NetworkObject>();
+            root.AddComponent<NetworkObject>().DontDestroyWithOwner = true; // redistributed, not destroyed, when the owner leaves
             AddOwnerTransform(root, syncScale: false);
             root.AddComponent<OwnershipRotationProbe>();
             return SavePrefab(root, $"{PrefabDir}/OwnershipProbe.prefab");
@@ -268,7 +272,7 @@ namespace MR.EditorTools
             return go;
         }
 
-        private static void AddOwnerTransform(GameObject go, bool syncScale)
+        internal static void AddOwnerTransform(GameObject go, bool syncScale)
         {
             var nt = go.AddComponent<NetworkTransform>();
             nt.AuthorityMode = NetworkTransform.AuthorityModes.Owner;
@@ -277,7 +281,7 @@ namespace MR.EditorTools
             nt.UseHalfFloatPrecision = true;
         }
 
-        private static TextMeshPro CreateLabel(GameObject go, Vector2 size, float minFont, float maxFont)
+        internal static TextMeshPro CreateLabel(GameObject go, Vector2 size, float minFont, float maxFont)
         {
             var label = go.AddComponent<TextMeshPro>();
             label.rectTransform.sizeDelta = size;
@@ -290,7 +294,7 @@ namespace MR.EditorTools
             return label;
         }
 
-        private static GameObject SavePrefab(GameObject root, string path)
+        internal static GameObject SavePrefab(GameObject root, string path)
         {
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);

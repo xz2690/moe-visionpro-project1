@@ -5,7 +5,8 @@
         "MR.Core",
         "Unity.XR.Hands",
         "Unity.InputSystem",
-        "Unity.XR.CoreUtils"
+        "Unity.XR.CoreUtils",
+        "Unity.PolySpatial.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

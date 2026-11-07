@@ -15,7 +15,7 @@ namespace MR.Networking
     public class OwnershipRotationProbe : NetworkBehaviour
     {
         [SerializeField] private float secondsPerOwner = 5f;
-        [SerializeField] private Vector3 orbitCenter = new(0f, 1.2f, 1.2f);
+        [SerializeField] private Vector3 orbitCenter = new(0f, 1.9f, 1.2f); // above the table and the lobby UI
         [SerializeField] private float orbitRadius = 0.4f;
         [SerializeField] private float degreesPerSecond = 45f;
 

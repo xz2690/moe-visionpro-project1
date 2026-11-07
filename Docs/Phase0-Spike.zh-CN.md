@@ -98,6 +98,8 @@ Meta XR Simulator 是一个模拟 Quest 3 的 OpenXR 运行时，模拟头显、
 能验证的：在类似 Quest 的 OpenXR 运行时上，头部姿态、Touch 手柄和手的姿态能否通过 `HardwareRig` 正常读取，以及配合联网和语音的表现。验证不了的：透视（背景显示为黑色）、平面检测和真机性能，这些仍然需要头显。
 
 ### C. Vision Pro
+> **从 Unity 构建 visionOS 之前先退出 Xcode.app。** Xcode 27 运行时，Unity 6000.3 的 visionOS 构建步骤会在询问 Xcode"生成的工程是否已打开"时让编辑器直接崩溃（`IsXcodeProjectOpen` → unrecognized selector）。先关掉 Xcode 再构建，构建完再打开生成的工程。DeviceHub（模拟器窗口）可以一直开着。
+
 - Build Settings 切到 visionOS → Build，在 Xcode 中打开生成的工程，部署到真机。
 - 也可以用 **PolySpatial → Play to Device** 快速迭代。
 
